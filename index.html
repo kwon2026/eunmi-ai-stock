@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>스톡지능</title>
+
+<style>
+:root{
+  --bg:#0B1220;
+  --card:#121F38;
+  --border:#223255;
+  --text:#EAF0FF;
+  --muted:#A9B6D3;
+  --accent:#7AA7FF;
+  --good:#7FBF9F;
+  --warn:#F4C76D;
+  --bad:#F08A8A;
+}
+
+body{
+  margin:0;
+  font-family:system-ui, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.wrap{max-width:420px;margin:0 auto;padding:20px;}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:16px;
+}
+
+h1{font-size:22px;margin:0 0 12px;}
+
+.muted{color:var(--muted);font-size:14px;}
+
+button{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+  background:var(--accent);
+  color:#000;
+}
+
+select{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+
+.gauge-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:20px 0;
+}
+
+.gauge{
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:28px;
+  font-weight:800;
+  background:conic-gradient(var(--accent) 0deg, #222 0deg);
+  transition:all 1s ease;
+}
+
+.state{
+  text-align:center;
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:8px;
+}
+
+.nav{
+  display:flex;
+  justify-content:space-around;
+  margin-top:20px;
+  font-size:14px;
+  opacity:.7;
+}
+
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h1>📊 스톡지능</h1>
+
+<div class="card">
+<label class="muted">테마 선택</label>
+<select id="theme">
+<option value="dark">기본 다크</option>
+<option value="light">맑은 라이트</option>
+<option value="blue">블루 포커스</option>
+<option value="green">그린 트레이딩</option>
+</select>
+
+<div class="gauge-wrap">
+<div class="gauge" id="gauge">0</div>
+</div>
+
+<div class="state" id="state">점수를 계산하세요</div>
+
+<button onclick="calculate()">점수 계산</button>
+</div>
+
+<div class="card">
+<b>포트폴리오</b>
+<div class="muted">현재 자산은 관리 가능한 범위입니다.</div>
+</div>
+
+<div class="card">
+<b>알림 설정</b>
+<div class="muted">☑ 점수 10 이상 변동 시 알림</div>
+<div class="muted">☑ 리스크 상승 시 알림</div>
+</div>
+
+<div class="nav">
+<div>홈</div>
+<div>포트폴리오</div>
+<div>테마</div>
+<div>설정</div>
+</div>
+
+</div>
+
+<script>
+function calculate(){
+  const score = Math.floor(Math.random()*100);
+  const gauge = document.getElementById("gauge");
+  const state = document.getElementById("state");
+
+  let color = "var(--accent)";
+  let text = "중립 구간";
+
+  if(score >= 75){
+    color = "var(--good)";
+    text = "안정 구간";
+  }
+  else if(score >= 55){
+    color = "var(--accent)";
+    text = "양호 구간";
+  }
+  else if(score >= 35){
+    color = "var(--warn)";
+    text = "관망 구간";
+  }
+  else{
+    color = "var(--bad)";
+    text = "주의 구간";
+  }
+
+  gauge.style.background = `conic-gradient(${color} ${score*3.6}deg, #222 0deg)`;
+  gauge.innerText = score;
+  state.innerText = text;
+}
+
+document.getElementById("theme").addEventListener("change",function(){
+  const t = this.value;
+  const root = document.documentElement;
+
+  if(t==="light"){
+    root.style.setProperty("--bg","#F6FAFF");
+    root.style.setProperty("--card","#FFFFFF");
+    root.style.setProperty("--text","#17223B");
+    root.style.setProperty("--accent","#6FA8FF");
+  }
+  if(t==="blue"){
+    root.style.setProperty("--bg","#0D1426");
+    root.style.setProperty("--card","#122142");
+    root.style.setProperty("--accent","#8EC5FF");
+  }
+  if(t==="green"){
+    root.style.setProperty("--bg","#0C1512");
+    root.style.setProperty("--card","#10261D");
+    root.style.setProperty("--accent","#A8D5BA");
+  }
+  if(t==="dark"){
+    root.style.setProperty("--bg","#0B1220");
+    root.style.setProperty("--card","#121F38");
+    root.style.setProperty("--text","#EAF0FF");
+    root.style.setProperty("--accent","#7AA7FF");
+  }
+});
+</script>
+
+</body>
+</html>
