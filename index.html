@@ -1,83 +1,13 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>스톡지능</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app" class="app">
-    <!-- Top -->
-    <header class="topbar">
-      <div class="brand">
-        <div class="brandIcon" aria-hidden="true">📊</div>
-        <div class="brandText">
-          <div class="brandTitle">스톡지능</div>
-          <div class="brandSub" id="userBadge">게스트</div>
-        </div>
-      </div>
-
-      <div class="topActions">
-        <button class="iconBtn" id="btnRefresh" title="새로고침" aria-label="새로고침">
-          ↻
-        </button>
-        <button class="iconBtn" id="btnTopSearch" title="검색" aria-label="검색">
-          🔍
-        </button>
-      </div>
-    </header>
-
-    <!-- Page container -->
-    <main class="page" id="page"></main>
-
-    <!-- Bottom nav -->
-    <nav class="bottomNav">
-      <button class="navItem" data-route="home">
-        <span class="navIcon">⌂</span>
-        <span class="navLabel">홈</span>
-      </button>
-      <button class="navItem" data-route="portfolio">
-        <span class="navIcon">★</span>
-        <span class="navLabel">포트폴리오</span>
-      </button>
-      <button class="navItem" data-route="search">
-        <span class="navIcon">🔎</span>
-        <span class="navLabel">검색</span>
-      </button>
-      <button class="navItem" data-route="settings">
-        <span class="navIcon">⚙</span>
-        <span class="navLabel">설정</span>
-      </button>
-    </nav>
-  </div>
-
-  <!-- Login Modal -->
-  <div class="modalOverlay hidden" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-    <div class="modal">
-      <div class="modalHeader">
-        <div class="modalTitle" id="loginTitle">로그인(테스트)</div>
-        <button class="iconBtn" id="btnCloseLogin" aria-label="닫기">✕</button>
-      </div>
-
-      <div class="modalBody">
-        <p class="muted">
-          지금은 테스트용이야.<br/>
-          “로그인” 누르면 <b>회원</b>으로 전환되고 저장/알림 기능 UI가 열린다.<br/>
-          <span class="muted">※ 실제 계정/DB는 다음 단계에서 붙임</span>
-        </p>
-      </div>
-
-      <div class="modalFooter">
-        <button class="btn ghost" id="btnCancelLogin">취소</button>
-        <button class="btn primary" id="btnDoLogin">로그인</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast -->
-  <div class="toast hidden" id="toast"></div>
-
+  <div id="app"></div>
   <script src="app.js"></script>
 </body>
 </html>
