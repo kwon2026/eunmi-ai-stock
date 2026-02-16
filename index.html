@@ -1,201 +1,134 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>스톡지능</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>은미AI 스톡 인텔리전스</title>
 <style>
-:root{
-  --bg:#0B1220;
-  --card:#121F38;
-  --border:#223255;
-  --text:#EAF0FF;
-  --muted:#A9B6D3;
-  --accent:#7AA7FF;
-  --good:#7FBF9F;
-  --warn:#F4C76D;
-  --bad:#F08A8A;
-}
-
 body{
-  margin:0;
-  font-family:system-ui, sans-serif;
-  background:var(--bg);
-  color:var(--text);
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+background:#0d1b2a;
+color:white;
+text-align:center;
 }
-
-.wrap{max-width:420px;margin:0 auto;padding:20px;}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:16px;
+.container{
+padding:20px;
 }
-
-h1{font-size:22px;margin:0 0 12px;}
-
-.muted{color:var(--muted);font-size:14px;}
-
-button{
-  width:100%;
-  padding:12px;
-  border-radius:14px;
-  border:none;
-  font-weight:700;
-  cursor:pointer;
-  background:var(--accent);
-  color:#000;
-}
-
-select{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:12px;
-}
-
-.gauge-wrap{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  margin:20px 0;
-}
-
 .gauge{
-  width:180px;
-  height:180px;
-  border-radius:50%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-size:28px;
-  font-weight:800;
-  background:conic-gradient(var(--accent) 0deg, #222 0deg);
-  transition:all 1s ease;
+width:220px;
+height:220px;
+margin:20px auto;
+border-radius:50%;
+background:conic-gradient(#4caf50 0% 50%, #222 50% 100%);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:48px;
+font-weight:bold;
 }
-
-.state{
-  text-align:center;
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:8px;
+.button{
+padding:14px;
+margin:10px;
+border-radius:12px;
+background:#3b82f6;
+border:none;
+color:white;
+font-size:16px;
+width:90%;
 }
-
-.nav{
-  display:flex;
-  justify-content:space-around;
-  margin-top:20px;
-  font-size:14px;
-  opacity:.7;
+.tabs{
+display:flex;
+justify-content:space-around;
+margin-top:20px;
 }
-
+.tab{
+padding:10px;
+font-size:14px;
+opacity:0.7;
+}
+.tab.active{
+opacity:1;
+font-weight:bold;
+}
+.status{
+margin-top:10px;
+font-size:20px;
+}
 </style>
 </head>
-
 <body>
-<div class="wrap">
 
-<h1>📊 스톡지능</h1>
+<div class="container">
+<h2>오늘 상태 요약</h2>
 
-<div class="card">
-<label class="muted">테마 선택</label>
-<select id="theme">
-<option value="dark">기본 다크</option>
-<option value="light">맑은 라이트</option>
-<option value="blue">블루 포커스</option>
-<option value="green">그린 트레이딩</option>
-</select>
-
-<div class="gauge-wrap">
 <div class="gauge" id="gauge">0</div>
+
+<div class="status" id="statusText">대기중</div>
+
+<button class="button" onclick="runAnalysis()">분석 실행</button>
+
+<div class="tabs">
+<div class="tab active" onclick="changeTab('chart')">차트</div>
+<div class="tab" onclick="changeTab('news')">뉴스</div>
+<div class="tab" onclick="changeTab('risk')">리스크</div>
 </div>
 
-<div class="state" id="state">점수를 계산하세요</div>
-
-<button onclick="calculate()">점수 계산</button>
-</div>
-
-<div class="card">
-<b>포트폴리오</b>
-<div class="muted">현재 자산은 관리 가능한 범위입니다.</div>
-</div>
-
-<div class="card">
-<b>알림 설정</b>
-<div class="muted">☑ 점수 10 이상 변동 시 알림</div>
-<div class="muted">☑ 리스크 상승 시 알림</div>
-</div>
-
-<div class="nav">
-<div>홈</div>
-<div>포트폴리오</div>
-<div>테마</div>
-<div>설정</div>
+<div id="contentArea">
+<p>여기에 분석 내용이 표시됩니다.</p>
 </div>
 
 </div>
 
 <script>
-function calculate(){
-  const score = Math.floor(Math.random()*100);
-  const gauge = document.getElementById("gauge");
-  const state = document.getElementById("state");
-
-  let color = "var(--accent)";
-  let text = "중립 구간";
-
-  if(score >= 75){
-    color = "var(--good)";
-    text = "안정 구간";
-  }
-  else if(score >= 55){
-    color = "var(--accent)";
-    text = "양호 구간";
-  }
-  else if(score >= 35){
-    color = "var(--warn)";
-    text = "관망 구간";
-  }
-  else{
-    color = "var(--bad)";
-    text = "주의 구간";
-  }
-
-  gauge.style.background = `conic-gradient(${color} ${score*3.6}deg, #222 0deg)`;
-  gauge.innerText = score;
-  state.innerText = text;
+function runAnalysis(){
+let score=Math.floor(Math.random()*100);
+document.getElementById("gauge").innerText=score;
+updateGauge(score);
+updateStatus(score);
 }
 
-document.getElementById("theme").addEventListener("change",function(){
-  const t = this.value;
-  const root = document.documentElement;
+function updateGauge(score){
+let color;
+if(score>=70){
+color="#4caf50";
+}
+else if(score>=40){
+color="#ff9800";
+}
+else{
+color="#f44336";
+}
+document.getElementById("gauge").style.background=
+`conic-gradient(${color} 0% ${score}%, #222 ${score}% 100%)`;
+}
 
-  if(t==="light"){
-    root.style.setProperty("--bg","#F6FAFF");
-    root.style.setProperty("--card","#FFFFFF");
-    root.style.setProperty("--text","#17223B");
-    root.style.setProperty("--accent","#6FA8FF");
-  }
-  if(t==="blue"){
-    root.style.setProperty("--bg","#0D1426");
-    root.style.setProperty("--card","#122142");
-    root.style.setProperty("--accent","#8EC5FF");
-  }
-  if(t==="green"){
-    root.style.setProperty("--bg","#0C1512");
-    root.style.setProperty("--card","#10261D");
-    root.style.setProperty("--accent","#A8D5BA");
-  }
-  if(t==="dark"){
-    root.style.setProperty("--bg","#0B1220");
-    root.style.setProperty("--card","#121F38");
-    root.style.setProperty("--text","#EAF0FF");
-    root.style.setProperty("--accent","#7AA7FF");
-  }
-});
+function updateStatus(score){
+let text;
+if(score>=70){
+text="안정";
+}
+else if(score>=40){
+text="주의";
+}
+else{
+text="경고";
+}
+document.getElementById("statusText").innerText=text;
+}
+
+function changeTab(type){
+let content=document.getElementById("contentArea");
+if(type==="chart"){
+content.innerHTML="<p>차트 분석 결과 표시 영역</p>";
+}
+if(type==="news"){
+content.innerHTML="<p>관련 뉴스 요약 표시 영역</p>";
+}
+if(type==="risk"){
+content.innerHTML="<p>리스크 분석 표시 영역</p>";
+}
+}
 </script>
 
 </body>
