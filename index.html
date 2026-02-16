@@ -2,489 +2,460 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>투자온도</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스톡지능</title>
   <style>
     :root{
-      --bg:#0b2336;
-      --card:#112d47;
+      --bg:#081c2b;
+      --card:#102b45;
       --text:#ffffff;
       --muted:rgba(255,255,255,.72);
       --line:rgba(255,255,255,.10);
-      --accent:#6ea7ff;
+      --accent:#4c8bf5;
 
       --good:#1fcf78;
       --warn:#f6c64a;
       --bad:#ff5a5f;
 
-      --paperTex:none;
-      --paperOpacity:0;
-      --titleFont:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      --bodyFont:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      --radius:22px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
     }
-
-    *{ box-sizing:border-box; }
+    *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: var(--bodyFont);
-      background: var(--bg);
-      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 50% 0%, rgba(60,130,255,.18), transparent 60%),
+                  linear-gradient(180deg, #061726 0%, #071827 45%, #071320 100%);
+      color:var(--text);
     }
-
     .wrap{
-      max-width: 420px;
+      max-width: 430px;
       margin: 0 auto;
-      padding: 18px 14px 96px;
+      padding: 18px 14px 92px;
     }
-
     .topbar{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
-
     .brand{
       display:flex;
       align-items:center;
       gap:10px;
-      font-weight:900;
+      font-weight:800;
       letter-spacing:-.5px;
-      font-family: var(--titleFont);
-      font-size: 26px;
+      font-size: 28px;
     }
-
     .iconBtn{
-      width:42px; height:42px;
-      border-radius: 14px;
+      width:42px;height:42px;
+      border-radius:14px;
       background: rgba(255,255,255,.06);
       border:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      display:flex;align-items:center;justify-content:center;
       cursor:pointer;
       user-select:none;
     }
 
     .card{
       position:relative;
-      background: var(--card);
+      background: rgba(16,43,69,.88);
       border:1px solid var(--line);
-      border-radius: 22px;
-      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
       overflow:hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
       margin-bottom: 14px;
     }
-
+    .row{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
     .label{
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 10px;
-      font-weight: 700;
+      font-size:14px;color:var(--muted);font-weight:700;
+    }
+    select{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      outline:none;
+      font-size: 16px;
+    }
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,.62);
+      line-height: 1.4;
     }
 
-    .center{
+    /* Gauge */
+    .gaugeWrap{
       display:flex;
-      flex-direction:column;
       align-items:center;
       justify-content:center;
-      padding: 6px 0 2px;
-      gap: 10px;
+      margin: 14px 0 6px;
     }
-
     .gauge{
-      width: 240px;
-      height: 240px;
+      width: 260px;
+      height: 260px;
       border-radius: 50%;
+      background:
+        conic-gradient(var(--good) calc(var(--p)*1%), rgba(255,255,255,.12) 0);
       display:flex;
       align-items:center;
       justify-content:center;
       position:relative;
-      border: 1px solid rgba(255,255,255,.08);
-      background: conic-gradient(var(--good) 0deg 270deg, rgba(255,255,255,.12) 270deg 360deg);
+      filter: drop-shadow(0 18px 25px rgba(0,0,0,.35));
     }
-    .gauge::after{
+    .gauge::before{
       content:"";
-      position:absolute;
-      width: 172px;
-      height: 172px;
-      border-radius:50%;
-      background: rgba(0,0,0,.28);
+      width: 184px;
+      height: 184px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.25);
       border:1px solid rgba(255,255,255,.10);
-      backdrop-filter: blur(4px);
+      position:absolute;
     }
     .score{
       position:relative;
-      z-index:2;
-      font-size: 54px;
+      font-size: 64px;
       font-weight: 900;
+      letter-spacing:-2px;
+    }
+    .statusText{
+      text-align:center;
+      margin-top: 6px;
+      font-weight:900;
+      font-size: 36px;
       letter-spacing:-1px;
     }
-
-    .state{
-      font-size: 30px;
-      font-weight: 900;
-      letter-spacing:-.8px;
-      margin-top: 4px;
-      font-family: var(--titleFont);
-    }
-
-    .summary{
+    .desc{
       text-align:center;
-      color: var(--muted);
-      line-height:1.45;
-      margin-top: 2px;
-      padding: 0 8px;
+      margin-top: 8px;
+      color: rgba(255,255,255,.72);
+      font-weight:600;
+      line-height: 1.45;
+      padding: 0 10px;
     }
-
     .btn{
-      width:100%;
-      padding: 16px 16px;
+      width: 100%;
+      border:0;
+      cursor:pointer;
+      padding: 16px 14px;
       border-radius: 18px;
-      border: 0;
+      background: var(--accent);
+      color: #0b1020;
       font-size: 18px;
       font-weight: 900;
-      background: var(--accent);
-      color:#0b1220;
-      cursor:pointer;
-      box-shadow: 0 14px 28px rgba(0,0,0,.25);
+      letter-spacing:-.2px;
       margin-top: 12px;
+      box-shadow: 0 12px 24px rgba(76,139,245,.25);
     }
-    .btn:active{ transform: translateY(1px); }
-
-    .row{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-
-    /* 배너 광고 */
-    .adBar{
-      display:none;
-      border-radius: 20px;
-      border:1px dashed rgba(255,255,255,.22);
-      background: rgba(255,255,255,.05);
-      padding: 14px;
-    }
-    .adTitle{
-      font-weight: 900;
-      margin-bottom: 6px;
-      letter-spacing:-.3px;
-    }
-    .adBody{
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-    .adActions{
-      display:flex;
-      gap:10px;
-      margin-top: 10px;
-      flex-wrap:wrap;
-    }
-    .chipBtn{
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.18);
+    .btn.secondary{
+      background: rgba(255,255,255,.10);
+      border: 1px solid var(--line);
       color: var(--text);
-      font-weight: 800;
-      cursor:pointer;
-      user-select:none;
-      font-size: 14px;
+      box-shadow:none;
     }
-    .chipBtn.primary{
-      background: var(--accent);
-      color:#081322;
-      border:0;
+    .btn.gold{
+      background: rgba(246,198,74,.85);
+      box-shadow: 0 12px 24px rgba(246,198,74,.18);
     }
 
-    /* 잠금 오버레이 (게스트에서 저장/알림 잠금) */
-    .lockWrap{ position:relative; }
-    .lockOverlay{
-      display:none;
-      position:absolute;
-      inset:0;
-      border-radius: inherit;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(6px);
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-      gap:10px;
-      padding: 18px;
-      text-align:center;
+    .sectionTitle{
+      font-weight:900;
+      margin: 6px 0 6px;
+      letter-spacing:-.4px;
+      font-size: 18px;
     }
-    .lockOverlay .msg{ font-weight: 900; font-size: 18px; }
-    .lockOverlay .sub{ color: rgba(255,255,255,.85); font-size: 14px; line-height:1.4; }
-
-    .mini{
+    .sub{
+      color: rgba(255,255,255,.70);
       font-size: 13px;
-      color: rgba(255,255,255,.62);
       line-height: 1.45;
     }
 
-    /* 하단 네비 */
-    .bottomNav{
-      position: fixed;
-      left:0; right:0; bottom:0;
-      background: rgba(0,0,0,.38);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255,255,255,.08);
-      padding: 10px 8px 12px;
+    /* Lock */
+    .locked{
+      opacity:.70;
+      filter: grayscale(.25);
     }
-    .bottomInner{
-      max-width: 420px;
-      margin:0 auto;
-      display:flex;
-      justify-content:space-around;
-      gap:6px;
-    }
-    .navItem{
-      flex:1;
-      text-align:center;
-      color: rgba(255,255,255,.70);
+    .lockBadge{
+      position:absolute;
+      right: 14px;
+      top: 14px;
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.10);
+      padding: 8px 10px;
+      border-radius: 14px;
       font-size: 12px;
-      padding: 10px 6px;
-      border-radius: 16px;
-      border:1px solid transparent;
+      color: rgba(255,255,255,.85);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-weight:800;
+    }
+
+    /* Banner */
+    .banner{
+      position: sticky;
+      bottom: 74px;
+      z-index: 4;
+      margin-top: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(135deg, rgba(0,0,0,.35), rgba(255,255,255,.06));
+      padding: 12px 12px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      box-shadow: 0 16px 28px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+    }
+    .banner strong{font-size:14px}
+    .banner small{display:block;color:rgba(255,255,255,.72);margin-top:2px}
+    .pill{
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+      font-weight:900;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    /* Bottom nav */
+    .nav{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      width: min(430px, calc(100% - 24px));
+      height: 58px;
+      border-radius: 20px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.28);
+      backdrop-filter: blur(12px);
+      display:flex;
+      align-items:center;
+      justify-content:space-around;
+      z-index: 5;
+      box-shadow: 0 14px 28px rgba(0,0,0,.35);
+    }
+    .tab{
+      width: 25%;
+      text-align:center;
+      color: rgba(255,255,255,.72);
+      font-weight:900;
+      font-size: 13px;
+      cursor:pointer;
       user-select:none;
     }
-    .navItem.active{
-      color: var(--text);
-      background: rgba(255,255,255,.08);
-      border-color: rgba(255,255,255,.10);
-      font-weight: 900;
+    .tab.active{ color: #ffffff; }
+    .page{ display:none; }
+    .page.active{ display:block; }
+
+    /* Modal */
+    .modalBg{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 10;
+      padding: 18px;
+    }
+    .modal{
+      width: min(430px, 100%);
+      background: rgba(20,25,35,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      padding: 14px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.45);
+      backdrop-filter: blur(16px);
+    }
+    .modal h3{
+      margin: 6px 0 10px;
+      font-size: 18px;
+      letter-spacing:-.3px;
+    }
+    .modal p{
+      margin: 0 0 12px;
+      color: rgba(255,255,255,.72);
+      line-height: 1.45;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .modalActions{
+      display:flex; gap:10px;
+    }
+
+    /* Tiny */
+    .tiny{
+      font-size: 12px;
+      color: rgba(255,255,255,.62);
+      margin-top: 8px;
+      line-height: 1.35;
     }
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="brand">🌡️ 투자온도</div>
-      <div class="iconBtn" title="검색(예정)">🔍</div>
+      <div class="brand">📊 스톡지능</div>
+      <div class="iconBtn" id="btnSearch" title="검색">🔍</div>
     </div>
 
-    <!-- 홈: 상태 요약 -->
-    <div class="card">
-      <div class="label">오늘 상태 요약</div>
-
-      <div class="center">
-        <div id="gauge" class="gauge">
-          <div id="score" class="score">76</div>
+    <!-- PAGE: HOME -->
+    <div class="page active" id="pageHome">
+      <div class="card">
+        <div class="label">테마 선택</div>
+        <div style="margin-top:10px;">
+          <select id="themeSelect">
+            <option value="A">A. 고급 금융</option>
+            <option value="B">B. 심리 안정형</option>
+            <option value="C">C. 애듬 미니멈</option>
+            <option value="D">D. 기간형</option>
+            <option value="E">E. 독도먹물</option>
+            <option value="F">F. 고운한복</option>
+          </select>
         </div>
-        <div id="state" class="state">안정</div>
-        <div id="summary" class="summary">현재 보유 종목은 관리 가능한 흐름입니다. 급한 행동은 필요 없습니다.</div>
+        <div class="hint">※ 프리미엄 글자 표시는 안 넣었다. 테마는 모두 동일 기능.</div>
       </div>
 
-      <button id="runBtn" class="btn">분석 실행</button>
-    </div>
+      <div class="card">
+        <div class="label">오늘 상태 요약</div>
 
-    <!-- 배너 광고: 게스트는 항상 ON / 회원은 기본 ON, 1분 광고 보면 24시간 OFF -->
-    <div id="adBox" class="card adBar">
-      <div class="adTitle">배너 광고</div>
-      <div class="adBody" id="adMsg"></div>
+        <div class="gaugeWrap">
+          <div class="gauge" id="gauge" style="--p:76;">
+            <div class="score" id="scoreText">76</div>
+          </div>
+        </div>
 
-      <div class="adActions">
-        <button id="watchAdBtn" class="chipBtn primary">1분 광고 보고 24시간 제거</button>
-        <button id="loginBtn" class="chipBtn">로그인(테스트)</button>
-        <button id="logoutBtn" class="chipBtn">로그아웃</button>
+        <div class="statusText" id="statusLabel">안정</div>
+        <div class="desc" id="statusDesc">현재 보유 종목은 관리 가능한 흐름입니다. 급한 행동은 필요 없습니다.</div>
+
+        <button class="btn" id="btnAnalyze">분석 실행</button>
+
+        <div class="tiny" id="modeLine"></div>
       </div>
 
-      <div class="mini" id="adTimer" style="margin-top:10px;"></div>
-    </div>
-
-    <!-- 저장 리스트: 게스트 잠금 -->
-    <div class="card lockWrap" id="saveCard">
-      <div class="label">저장 리스트</div>
-      <div class="mini">관심 종목 저장/삭제/정렬(회원 기능). 지금은 UI 자리만 잡아둠.</div>
-
-      <div class="lockOverlay" id="saveLock">
-        <div class="msg">게스트는 저장리스트 관리 불가</div>
-        <div class="sub">로그인 회원만 저장/삭제/정렬이 가능합니다.</div>
-        <button class="chipBtn primary" onclick="fakeLogin()">로그인하기</button>
+      <div class="card" id="saveCard">
+        <div class="sectionTitle">저장 리스트</div>
+        <div class="sub">관심 종목 저장/삭제/정렬(회원 기능). 지금은 UI 자리만 잡아둠.</div>
+        <div class="lockBadge" id="saveLockBadge" style="display:none;">🔒 로그인 필요</div>
+        <button class="btn secondary" id="btnSaveGo" style="margin-top:12px;">저장 리스트 열기</button>
       </div>
-    </div>
 
-    <!-- 알림: 게스트 잠금 -->
-    <div class="card lockWrap" id="alarmCard">
-      <div class="label">알림</div>
-      <div class="mini">점수 변동/리스크 상승 알림(회원 기능). 지금은 UI 자리만 잡아둠.</div>
-
-      <div class="lockOverlay" id="alarmLock">
-        <div class="msg">게스트는 알림 불가</div>
-        <div class="sub">로그인 회원만 알림 설정이 가능합니다.</div>
-        <button class="chipBtn primary" onclick="fakeLogin()">로그인하기</button>
+      <div class="card" id="alarmCard">
+        <div class="sectionTitle">알림</div>
+        <div class="sub">점수 변동/리스크 상승 알림(회원 기능). 지금은 UI 자리만 잡아둠.</div>
+        <div class="lockBadge" id="alarmLockBadge" style="display:none;">🔒 로그인 필요</div>
+        <button class="btn secondary" id="btnAlarmGo" style="margin-top:12px;">알림 설정 열기</button>
       </div>
     </div>
 
+    <!-- PAGE: PORTFOLIO -->
+    <div class="page" id="pagePortfolio">
+      <div class="card">
+        <div class="sectionTitle">포트폴리오</div>
+        <div class="sub">현재 자산은 관리 가능한 범위입니다. (다음 단계: 보유종목 리스트 + 종목 상세 페이지 연결)</div>
+        <button class="btn secondary" id="btnPortfolioAction" style="margin-top:12px;">보유종목 보기(준비중)</button>
+      </div>
+    </div>
+
+    <!-- PAGE: SEARCH -->
+    <div class="page" id="pageSearch">
+      <div class="card">
+        <div class="sectionTitle">검색</div>
+        <div class="sub">종목 검색은 다음 단계에서 연결합니다.</div>
+        <button class="btn secondary" id="btnSearchAction" style="margin-top:12px;">검색(준비중)</button>
+      </div>
+    </div>
+
+    <!-- PAGE: SETTINGS -->
+    <div class="page" id="pageSettings">
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="sectionTitle">설정</div>
+            <div class="sub">게스트/회원 상태, 광고, 알림 권한을 여기서 확인합니다.</div>
+          </div>
+          <div class="iconBtn" id="btnLogout" title="로그아웃" style="display:none;">⎋</div>
+        </div>
+
+        <div style="margin-top:12px; border-top:1px solid var(--line); padding-top:12px;">
+          <div class="row">
+            <div>
+              <div class="label">현재 모드</div>
+              <div style="font-weight:900; font-size:18px; margin-top:6px;" id="modeText">게스트</div>
+              <div class="tiny" id="adText"></div>
+            </div>
+            <button class="pill" id="btnLogin">로그인</button>
+          </div>
+
+          <div style="margin-top:12px;">
+            <button class="btn gold" id="btnWatchAd">1분 광고 보기 → 24시간 배너 OFF</button>
+            <div class="tiny">회원 전용: 1분 광고를 보면 배너광고가 24시간 숨김 처리됩니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">알림 설정</div>
+        <div class="sub">점수 10 이상 변동 시 알림 / 리스크 상승 시 알림</div>
+        <div style="margin-top:12px; display:flex; justify-content:space-between; gap:10px;">
+          <button class="btn secondary" id="btnToggleA" style="flex:1;">점수 변동 알림</button>
+          <button class="btn secondary" id="btnToggleB" style="flex:1;">리스크 알림</button>
+        </div>
+        <div class="tiny">게스트는 알림 기능이 잠깁니다.</div>
+      </div>
+    </div>
+
+    <!-- Banner -->
+    <div class="banner" id="banner">
+      <div>
+        <strong>배너 광고</strong>
+        <small id="bannerSub">게스트는 24시간 노출. 회원은 1분 광고 시청 시 24시간 숨김.</small>
+      </div>
+      <div class="pill" id="bannerCTA">자세히</div>
+    </div>
   </div>
 
-  <div class="bottomNav">
-    <div class="bottomInner">
-      <div class="navItem active">홈</div>
-      <div class="navItem">포트폴리오</div>
-      <div class="navItem">검색</div>
-      <div class="navItem">설정</div>
+  <!-- Bottom Nav -->
+  <div class="nav">
+    <div class="tab active" data-tab="Home">홈</div>
+    <div class="tab" data-tab="Portfolio">포트폴리오</div>
+    <div class="tab" data-tab="Search">검색</div>
+    <div class="tab" data-tab="Settings">설정</div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalBg" id="modalBg">
+    <div class="modal">
+      <h3 id="modalTitle">안내</h3>
+      <p id="modalBody">내용</p>
+      <div class="modalActions">
+        <button class="btn secondary" id="modalCancel">닫기</button>
+        <button class="btn" id="modalOk">확인</button>
+      </div>
     </div>
   </div>
 
 <script>
-  // ====== 회원/광고 제거(24시간) 로직 ======
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  const AD_REMOVE_UNTIL_KEY = "ad_remove_until";
-  const MEMBER_KEY = "member";
+  // ====== STORAGE KEYS ======
+  const K_AUTH = "auth_mode";            // "guest" | "member"
+  const K_ADFREE = "ad_free_until";      // timestamp ms
+  const K_THEME = "theme_choice";        // A~F
 
-  function isMember(){
-    return localStorage.getItem(MEMBER_KEY) === "true";
-  }
+  // ====== STATE ======
+  const state = {
+    auth: localStorage.getItem(K_AUTH) || "guest",
+    adFreeUntil: Number(localStorage.getItem(K_ADFREE) || 0),
+    theme: localStorage.getItem(K_THEME) || "A",
+    notifA: false,
+    notifB: false,
+  };
 
-  // "1분 광고 시청"은 실제 광고 SDK 대신, 지금은 타이머로 시뮬레이션
-  async function watchAdOneMinute(){
-    // 60초 기다리는 대신, 지금은 3초로 테스트(원하면 60초로 바꿔)
-    const TEST_SECONDS = 3; // ← 실제는 60으로 바꾸면 됨
-    return new Promise(resolve => setTimeout(resolve, TEST_SECONDS * 1000));
-  }
-
-  function adRemoved(){
-    const until = Number(localStorage.getItem(AD_REMOVE_UNTIL_KEY) || "0");
-    return Date.now() < until;
-  }
-
-  function setAdRemoved24h(){
-    localStorage.setItem(AD_REMOVE_UNTIL_KEY, String(Date.now() + DAY_MS));
-  }
-
-  function remainingMs(){
-    const until = Number(localStorage.getItem(AD_REMOVE_UNTIL_KEY) || "0");
-    return Math.max(0, until - Date.now());
-  }
-
-  function fmtMs(ms){
-    const s = Math.floor(ms/1000);
-    const h = Math.floor(s/3600);
-    const m = Math.floor((s%3600)/60);
-    return `${h}시간 ${m}분`;
-  }
-
-  function renderAd(){
-    const adBox = document.getElementById("adBox");
-    const adMsg = document.getElementById("adMsg");
-    const adTimer = document.getElementById("adTimer");
-    const watchBtn = document.getElementById("watchAdBtn");
-
-    // 게스트: 배너 항상 표시, 제거 불가
-    if(!isMember()){
-      adBox.style.display = "block";
-      adMsg.textContent = "게스트는 배너광고가 항상 표시됩니다. (저장/알림은 회원 전용)";
-      adTimer.textContent = "";
-      watchBtn.disabled = true;
-      watchBtn.style.opacity = .55;
-      return;
-    }
-
-    // 회원: 24시간 제거 상태면 숨김
-    if(adRemoved()){
-      adBox.style.display = "none";
-      return;
-    }
-
-    // 회원: 기본은 표시
-    adBox.style.display = "block";
-    adMsg.textContent = "회원은 1분 광고 시청 시, 배너광고가 24시간 제거됩니다.";
-    const left = remainingMs();
-    adTimer.textContent = left > 0 ? `광고 제거 남은 시간: ${fmtMs(left)}` : "";
-    watchBtn.disabled = false;
-    watchBtn.style.opacity = 1;
-  }
-
-  function renderLocks(){
-    const saveLock = document.getElementById("saveLock");
-    const alarmLock = document.getElementById("alarmLock");
-
-    const locked = !isMember();
-    saveLock.style.display = locked ? "flex" : "none";
-    alarmLock.style.display = locked ? "flex" : "none";
-  }
-
-  // ====== 게이지(샘플) ======
-  const gauge = document.getElementById("gauge");
-  const scoreEl = document.getElementById("score");
-  const stateEl = document.getElementById("state");
-  const summaryEl = document.getElementById("summary");
-
-  function setGauge(score){
-    const s = Math.max(0, Math.min(100, score));
-    scoreEl.textContent = s;
-
-    let state="안정", color="var(--good)", msg="현재 보유 종목은 관리 가능한 흐름입니다. 급한 행동은 필요 없습니다.";
-    if(s < 40){ state="경고"; color="var(--bad)"; msg="불안 신호가 커졌습니다. 오늘은 무리한 매매를 피하고 리스크를 줄이세요."; }
-    else if(s < 70){ state="주의"; color="var(--warn)"; msg="단기 변동성이 커질 수 있습니다. 계획대로 천천히 확인하세요."; }
-
-    stateEl.textContent = state;
-    summaryEl.textContent = msg;
-
-    const deg = Math.round((s/100)*360);
-    gauge.style.background = `conic-gradient(${color} 0deg ${deg}deg, rgba(255,255,255,.12) ${deg}deg 360deg)`;
-  }
-
-  document.getElementById("runBtn").addEventListener("click", ()=>{
-    setGauge(Math.floor(Math.random()*101));
-  });
-
-  // ====== 테스트 로그인/로그아웃 ======
-  function fakeLogin(){
-    localStorage.setItem(MEMBER_KEY, "true");
-    renderAd();
-    renderLocks();
-    alert("로그인 처리됨(테스트). 이제 저장/알림 사용 가능. 광고는 1분 시청 시 24시간 제거.");
-  }
-  window.fakeLogin = fakeLogin;
-
-  document.getElementById("loginBtn").addEventListener("click", fakeLogin);
-
-  document.getElementById("logoutBtn").addEventListener("click", ()=>{
-    localStorage.setItem(MEMBER_KEY, "false");
-    // 회원이 로그아웃해도 광고제거 타이머는 남겨두되, 게스트는 제거 불가이므로 표시됨
-    renderAd();
-    renderLocks();
-    alert("로그아웃(게스트). 배너 광고 항상 표시 + 저장/알림 잠김.");
-  });
-
-  document.getElementById("watchAdBtn").addEventListener("click", async ()=>{
-    if(!isMember()) return;
-
-    const btn = document.getElementById("watchAdBtn");
-    btn.disabled = true;
-    btn.textContent = "광고 시청 중…";
-
-    try{
-      await watchAdOneMinute();
-      setAdRemoved24h();
-      alert("완료! 배너광고가 24시간 제거됩니다.");
-    }finally{
-      btn.textContent = "1분 광고 보고 24시간 제거";
-      btn.disabled = false;
-      renderAd();
-    }
-  });
-
-  // 1분마다 상태 갱신
-  setInterval(renderAd, 60*1000);
-
-  // 초기
-  if(localStorage.getItem(MEMBER_KEY) === null){
-    localStorage.setItem(MEMBER_KEY, "false");
-  }
-  setGauge(76);
-  renderAd();
-  renderLocks();
-</script>
-</body>
-</html>
+  // ====== HELPERS ======
+  const $ = (id) => document.getElementBy
