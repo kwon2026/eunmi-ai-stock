@@ -1,295 +1,317 @@
-// =========================================
-// 상태 관리 (localStorage 단일 소스)
-// =========================================
-const LS_KEYS = {
-  MEMBER: "stock_member",          // "1"=회원, "0" 또는 null=게스트
-  THEME: "stock_theme",            // "A"~"F"
-  AD_HIDE_UNTIL: "stock_ad_hide_until" // 숫자(ms)
+const STORAGE_KEY = "eunmi_ai_stock_v1";
+
+const DEFAULT_STATE = {
+  auth: { mode: "guest" },            // guest | member
+  nav: { tab: "home" },               // home | portfolio | search | settings
+  ui: { modal: null },                // null | login | adPolicy | adWatch
+  ad: {
+    guestAlwaysOn: true,              // 게스트는 배너 항상 노출(정책)
+    hideUntil: 0                      // 회원이 1분 광고 완료 시: now + 24h
+  }
 };
 
-const state = {
-  isMember: false,
-  theme: "F",
-  adHideUntil: 0,
-  activeTab: "home",
-  score: 76
-};
+let state = loadState();
 
-const $ = (id) => document.getElementById(id);
-
-// -----------------------------------------
-// Storage
-// -----------------------------------------
-function loadState() {
-  const member = localStorage.getItem(LS_KEYS.MEMBER);
-  state.isMember = member === "1";
-
-  const theme = localStorage.getItem(LS_KEYS.THEME);
-  state.theme = theme || "F";
-
-  const ad = localStorage.getItem(LS_KEYS.AD_HIDE_UNTIL);
-  state.adHideUntil = ad ? Number(ad) : 0;
+// ---------- State Helpers ----------
+function setState(patch) {
+  state = deepMerge(state, patch);
+  saveState(state);
+  render();
 }
 
-function saveMember(isMember) {
-  state.isMember = !!isMember;
-  localStorage.setItem(LS_KEYS.MEMBER, state.isMember ? "1" : "0");
+function dispatch(action) {
+  switch (action.type) {
+    case "NAV_TO":
+      setState({ nav: { tab: action.tab }, ui: { modal: null } });
+      return;
+
+    case "OPEN_MODAL":
+      setState({ ui: { modal: action.modal } });
+      return;
+
+    case "CLOSE_MODAL":
+      setState({ ui: { modal: null } });
+      return;
+
+    case "LOGIN_AS_MEMBER":
+      setState({ auth: { mode: "member" }, ui: { modal: null } });
+      return;
+
+    case "LOGOUT_TO_GUEST":
+      // 로그아웃하면 게스트 정책(배너 always on)으로 즉시 복귀
+      setState({ auth: { mode: "guest" }, ui: { modal: null }, ad: { hideUntil: 0 } });
+      return;
+
+    case "AD_WATCH_DONE_1MIN":
+      // 회원: 1분 광고 완료 -> 24시간 배너 숨김
+      setState({ ad: { hideUntil: Date.now() + 24 * 60 * 60 * 1000 }, ui: { modal: null } });
+      return;
+
+    case "RESET_AD_HIDE":
+      setState({ ad: { hideUntil: 0 } });
+      return;
+
+    default:
+      console.warn("Unknown action:", action);
+  }
 }
 
-function saveTheme(themeKey) {
-  state.theme = themeKey;
-  localStorage.setItem(LS_KEYS.THEME, themeKey);
-}
-
-function saveAdHideUntil(ms) {
-  state.adHideUntil = ms;
-  localStorage.setItem(LS_KEYS.AD_HIDE_UNTIL, String(ms));
-}
-
-// -----------------------------------------
-// UI helpers
-// -----------------------------------------
-function setVisible(el, visible) {
-  if (!el) return;
-  el.classList.toggle("hidden", !visible);
-}
-
-function showModal(title, bodyText, actions = []) {
-  $("modalTitle").textContent = title;
-  $("modalBody").textContent = bodyText;
-
-  const wrap = $("modalActions");
-  wrap.innerHTML = "";
-
-  actions.forEach(a => {
-    const btn = document.createElement("button");
-    btn.className = a.kind === "primary" ? "btn-primary"
-                 : a.kind === "danger" ? "btn-danger"
-                 : "btn-ghost";
-    btn.textContent = a.label;
-    btn.addEventListener("click", () => {
-      if (a.onClick) a.onClick();
-      closeModal();
-    });
-    wrap.appendChild(btn);
-  });
-
-  setVisible($("modal"), true);
-}
-
-function closeModal() {
-  setVisible($("modal"), false);
+// ---------- Rules ----------
+function isMember() {
+  return state.auth.mode === "member";
 }
 
 function isAdHiddenNow() {
-  if (!state.isMember) return false; // 게스트는 항상 노출(정책)
-  return Date.now() < state.adHideUntil;
+  // 게스트는 숨김 불가(항상 노출)
+  if (!isMember()) return false;
+  return Date.now() < (state.ad.hideUntil || 0);
 }
 
-// -----------------------------------------
-// 렌더링: "한 번에" 전부 갱신
-// -----------------------------------------
-function renderHeader() {
-  $("userBadge").textContent = state.isMember ? "회원" : "게스트";
-}
+// ---------- Render ----------
+function render() {
+  // 상단/설정 화면 상태 표시
+  const elMode1 = document.querySelector("[data-role='auth-mode']");
+  const elMode2 = document.querySelector("[data-role='auth-mode-2']");
+  if (elMode1) elMode1.textContent = isMember() ? "회원" : "게스트";
+  if (elMode2) elMode2.textContent = isMember() ? "회원" : "게스트";
 
-function renderTabs() {
-  const tabIds = ["home","portfolio","search","settings"];
-  tabIds.forEach(t => {
-    const btn = document.querySelector(`.tab[data-tab="${t}"]`);
-    if (btn) btn.classList.toggle("active", state.activeTab === t);
+  // 화면 표시
+  showOnly(`[data-screen='${state.nav.tab}']`, "[data-screen]");
+
+  // 하단 탭 active
+  document.querySelectorAll("[data-nav]").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-nav") === state.nav.tab);
   });
 
-  setVisible($("pageHome"), state.activeTab === "home");
-  setVisible($("pagePortfolio"), state.activeTab === "portfolio");
-  setVisible($("pageSearch"), state.activeTab === "search");
-  setVisible($("pageSettings"), state.activeTab === "settings");
-}
-
-function renderMemberBlocks() {
-  // guest-only / member-only 전체 처리
-  document.querySelectorAll(".guest-only").forEach(el => {
-    el.style.display = state.isMember ? "none" : "block";
+  // 로그인 버튼 문구 통일
+  document.querySelectorAll("[data-action='open-login']").forEach(btn => {
+    btn.textContent = isMember() ? "로그아웃" : "로그인하기";
   });
-  document.querySelectorAll(".member-only").forEach(el => {
-    el.style.display = state.isMember ? "block" : "none";
-    // member-only는 기본 hidden일 수 있어 display로 풀어줬으니 hidden 제거
-    el.classList.toggle("hidden", !state.isMember);
+
+  // “로그인 필요” 버튼은 게스트면 로그인 모달로 유도, 회원이면 안내 모달(현재는 로그인 모달로 통일)
+  document.querySelectorAll("[data-action='need-login']").forEach(btn => {
+    btn.textContent = isMember() ? "기능 준비중" : "로그인하기";
+    btn.disabled = isMember(); // 회원이면 아직 미구현이라 비활성
   });
-}
 
-function renderTheme() {
-  const sel = $("themeSelect");
-  if (sel) sel.value = state.theme;
-  // 테마 색 적용까지 하고 싶으면 여기서 CSS 변수 바꾸면 됨.
-}
+  // 배너 표시
+  const banner = document.querySelector("[data-role='banner']");
+  if (banner) {
+    const showBanner = !isAdHiddenNow();
+    banner.style.display = showBanner ? "block" : "none";
 
-function renderScore() {
-  $("scoreNum").textContent = String(state.score);
-
-  let label = "안정";
-  let desc = "현재 보유 종목은 관리 가능한 흐름입니다. 급한 행동은 필요 없습니다.";
-  if (state.score < 40) { label = "위험"; desc = "변동성이 큽니다. 리스크 점검이 필요합니다."; }
-  else if (state.score < 70) { label = "주의"; desc = "주의 구간입니다. 무리한 진입은 피하세요."; }
-
-  $("scoreLabel").textContent = label;
-  $("scoreDesc").textContent = desc;
-
-  // 게이지(원형) 퍼센트 반영: conic-gradient 비율 갱신
-  const gauge = document.querySelector(".gauge");
-  if (gauge) {
-    const p = Math.max(0, Math.min(100, state.score));
-    gauge.style.background = `conic-gradient(#19c37d 0 ${p}%, rgba(255,255,255,.09) 0)`;
+    const desc = banner.querySelector("[data-role='banner-desc']");
+    if (desc) {
+      desc.textContent = isMember()
+        ? (showBanner ? "회원: 배너 기본 ON. 1분 광고 시청 완료 시 24시간 숨김." : "회원: 24시간 배너 숨김 상태.")
+        : "게스트: 배너 광고 24시간 노출(정책).";
+    }
   }
+
+  renderModal();
 }
 
-function renderAdState() {
-  const t = $("adStateText");
-  if (!t) return;
+function renderModal() {
+  const modalWrap = document.querySelector("[data-role='modal-wrap']");
+  if (!modalWrap) return;
 
-  if (!state.isMember) {
-    t.textContent = "게스트는 항상 노출";
+  const modal = state.ui.modal;
+
+  if (!modal) {
+    modalWrap.style.display = "none";
+    modalWrap.innerHTML = "";
     return;
   }
-  if (isAdHiddenNow()) {
-    const leftMs = state.adHideUntil - Date.now();
-    const leftMin = Math.ceil(leftMs / 60000);
-    t.textContent = `배너 숨김 중 (약 ${leftMin}분 남음)`;
-  } else {
-    t.textContent = "배너 광고 노출(회원 기본 ON)";
+
+  modalWrap.style.display = "flex";
+
+  if (modal === "login") {
+    modalWrap.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-title">로그인(테스트)</div>
+          <button class="modal-x" data-action="close-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="muted">
+            지금은 테스트용이야.<br/>
+            "로그인" 누르면 회원으로 전환되고 저장/알림 기능이 열림.<br/>
+            ※ 실제 계정/DB는 다음 단계에서 붙임
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" data-action="close-modal">취소</button>
+          <button class="btn primary" data-action="login-member">로그인</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (modal === "adPolicy") {
+    modalWrap.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-title">광고 정책</div>
+          <button class="modal-x" data-action="close-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="muted">
+            - 게스트: 배너 광고 24시간 노출<br/>
+            - 회원: 1분 광고 시청 완료 시 24시간 배너 숨김<br/><br/>
+            상태: ${isMember() ? "회원" : "게스트"} ${isMember() ? (isAdHiddenNow() ? "(배너 숨김)" : "(배너 노출)") : "(항상 노출)"}
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" data-action="close-modal">닫기</button>
+          ${isMember() ? `<button class="btn primary" data-action="open-adwatch">1분 광고 보기(테스트)</button>` : ``}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (modal === "adWatch") {
+    modalWrap.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-title">1분 광고 보기(테스트)</div>
+          <button class="modal-x" data-action="close-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="muted">
+            실제 광고 SDK 연결 전이라 테스트 버튼으로 처리.<br/>
+            완료 시 24시간 배너가 숨김 처리됨.
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" data-action="close-modal">닫기</button>
+          <button class="btn primary" data-action="adwatch-done">완료 처리</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // fallback
+  modalWrap.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">알림</div>
+        <button class="modal-x" data-action="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="muted">알 수 없는 모달 상태입니다.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-action="close-modal">닫기</button>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- Events ----------
+function bindEvents() {
+  document.addEventListener("click", (e) => {
+    const navBtn = e.target.closest("[data-nav]");
+    if (navBtn) {
+      dispatch({ type: "NAV_TO", tab: navBtn.getAttribute("data-nav") });
+      return;
+    }
+
+    const act = e.target.closest("[data-action]");
+    if (!act) return;
+
+    const action = act.getAttribute("data-action");
+
+    if (action === "open-login") {
+      if (isMember()) dispatch({ type: "LOGOUT_TO_GUEST" });
+      else dispatch({ type: "OPEN_MODAL", modal: "login" });
+      return;
+    }
+
+    if (action === "need-login") {
+      if (!isMember()) dispatch({ type: "OPEN_MODAL", modal: "login" });
+      return;
+    }
+
+    if (action === "login-member") {
+      dispatch({ type: "LOGIN_AS_MEMBER" });
+      return;
+    }
+
+    if (action === "close-modal") {
+      dispatch({ type: "CLOSE_MODAL" });
+      return;
+    }
+
+    if (action === "open-adpolicy") {
+      dispatch({ type: "OPEN_MODAL", modal: "adPolicy" });
+      return;
+    }
+
+    if (action === "open-adwatch") {
+      dispatch({ type: "OPEN_MODAL", modal: "adWatch" });
+      return;
+    }
+
+    if (action === "adwatch-done") {
+      dispatch({ type: "AD_WATCH_DONE_1MIN" });
+      return;
+    }
+
+    if (action === "reset-ad-hide") {
+      dispatch({ type: "RESET_AD_HIDE" });
+      return;
+    }
+  });
+}
+
+// ---------- Storage ----------
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return deepMerge(structuredClone(DEFAULT_STATE), parsed);
+  } catch (e) {
+    console.warn("Failed to load state:", e);
+    return structuredClone(DEFAULT_STATE);
   }
 }
 
-function renderAll() {
-  renderHeader();
-  renderTabs();
-  renderMemberBlocks();
-  renderTheme();
-  renderScore();
-  renderAdState();
+function saveState(s) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch (e) {
+    console.warn("Failed to save state:", e);
+  }
 }
 
-// -----------------------------------------
-// 이벤트
-// -----------------------------------------
-function setTab(tab) {
-  state.activeTab = tab;
-  renderAll();
+// ---------- Utils ----------
+function deepMerge(a, b) {
+  if (typeof a !== "object" || a === null) return b;
+  if (typeof b !== "object" || b === null) return b;
+
+  const out = Array.isArray(a) ? [...a] : { ...a };
+  for (const k of Object.keys(b)) {
+    out[k] = deepMerge(a[k], b[k]);
+  }
+  return out;
 }
 
-function doLoginTest() {
-  showModal(
-    "로그인(테스트)",
-    "지금은 테스트용이야.\n“로그인” 누르면 회원으로 전환되고 저장/알림 기능이 열림.\n※ 실제 계정/DB는 다음 단계에서 붙임",
-    [
-      { label: "취소", kind: "ghost" },
-      { label: "로그인", kind: "primary", onClick: () => {
-          saveMember(true);
-          renderAll();
-        }
-      }
-    ]
-  );
-}
-
-function doLogout() {
-  showModal(
-    "로그아웃",
-    "게스트로 전환할까?",
-    [
-      { label: "취소", kind: "ghost" },
-      { label: "로그아웃", kind: "danger", onClick: () => {
-          saveMember(false);
-          renderAll();
-        }
-      }
-    ]
-  );
-}
-
-function showAdPolicy() {
-  showModal(
-    "광고 정책",
-    state.isMember
-      ? "회원: 배너 광고 기본 ON\n“1분 광고 보기” 완료 시 24시간 배너 숨김"
-      : "게스트: 배너 광고 24시간 노출",
-    [
-      { label: "닫기", kind: "primary" },
-      ...(state.isMember ? [{
-        label: "1분 광고 보기(테스트)",
-        kind: "primary",
-        onClick: () => {
-          // 테스트: 24시간 숨김 처리
-          saveAdHideUntil(Date.now() + 24*60*60*1000);
-          renderAll();
-        }
-      }] : [])
-    ]
-  );
-}
-
-function resetAd() {
-  saveAdHideUntil(0);
-  renderAll();
-}
-
-function runAnalysis() {
-  // 지금은 데모: 점수 랜덤
-  const next = Math.floor(30 + Math.random() * 70);
-  state.score = next;
-  renderAll();
-}
-
-function bindEvents() {
-  // 탭
-  document.querySelectorAll(".tab").forEach(btn => {
-    btn.addEventListener("click", () => setTab(btn.dataset.tab));
+function showOnly(selectorToShow, allSelector) {
+  document.querySelectorAll(allSelector).forEach(el => {
+    el.style.display = "none";
   });
-
-  // 상단 버튼
-  $("btnRefresh").addEventListener("click", () => location.reload());
-  $("btnSearchTop").addEventListener("click", () => setTab("search"));
-
-  // 테마
-  $("themeSelect").addEventListener("change", (e) => {
-    saveTheme(e.target.value);
-    renderAll();
-  });
-
-  // 홈 액션
-  $("btnRun").addEventListener("click", runAnalysis);
-  $("btnSavedList").addEventListener("click", () => {
-    if (!state.isMember) return doLoginTest();
-    showModal("저장 리스트", "여기에 회원 저장 리스트 기능을 붙일 예정.", [{label:"닫기", kind:"primary"}]);
-  });
-  $("btnAlerts").addEventListener("click", () => {
-    if (!state.isMember) return doLoginTest();
-    showModal("알림 설정", "여기에 회원 알림 설정 기능을 붙일 예정.", [{label:"닫기", kind:"primary"}]);
-  });
-
-  // 광고 정책
-  $("btnAdPolicy").addEventListener("click", showAdPolicy);
-
-  // 로그인 버튼(각 페이지)
-  $("btnLoginFromPortfolio").addEventListener("click", doLoginTest);
-  $("btnLoginFromSearch").addEventListener("click", doLoginTest);
-
-  // 설정
-  $("btnAdReset").addEventListener("click", resetAd);
-  $("btnLogout").addEventListener("click", doLogout);
-
-  // 모달 닫기
-  $("modalClose").addEventListener("click", closeModal);
-  $("modal").addEventListener("click", (e) => {
-    if (e.target === $("modal")) closeModal();
-  });
+  const target = document.querySelector(selectorToShow);
+  if (target) target.style.display = "block";
 }
 
-// -----------------------------------------
-// 부팅
-// -----------------------------------------
-(function boot() {
-  loadState();
+// ---------- Init ----------
+function init() {
   bindEvents();
-  renderAll();
-})();
+  render();
+}
+
+document.addEventListener("DOMContentLoaded", init);
