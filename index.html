@@ -3,132 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>은미AI 스톡 인텔리전스</title>
+<title>은미아이 스톡</title>
+
 <style>
 body{
-margin:0;
-font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-background:#0d1b2a;
-color:white;
-text-align:center;
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#081c2b;
+    color:white;
+    text-align:center;
 }
+
 .container{
-padding:20px;
+    padding:20px;
 }
+
 .gauge{
-width:220px;
-height:220px;
-margin:20px auto;
-border-radius:50%;
-background:conic-gradient(#4caf50 0% 50%, #222 50% 100%);
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:48px;
-font-weight:bold;
+    width:220px;
+    height:220px;
+    margin:20px auto;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:48px;
+    font-weight:bold;
+    background:conic-gradient(#333 0%, #333 100%);
 }
-.button{
-padding:14px;
-margin:10px;
-border-radius:12px;
-background:#3b82f6;
-border:none;
-color:white;
-font-size:16px;
-width:90%;
-}
-.tabs{
-display:flex;
-justify-content:space-around;
-margin-top:20px;
-}
-.tab{
-padding:10px;
-font-size:14px;
-opacity:0.7;
-}
-.tab.active{
-opacity:1;
-font-weight:bold;
-}
+
 .status{
-margin-top:10px;
-font-size:20px;
+    font-size:20px;
+    margin-top:10px;
+}
+
+.button{
+    padding:14px;
+    margin:20px auto;
+    border-radius:12px;
+    background:#3b82f6;
+    border:none;
+    color:white;
+    font-size:16px;
+    width:90%;
+}
+
+.tabs{
+    display:flex;
+    justify-content:space-around;
+    margin-top:20px;
+}
+
+.tab{
+    padding:10px;
+    opacity:0.6;
+}
+
+.tab.active{
+    opacity:1;
+    font-weight:bold;
+}
+
+.content{
+    margin-top:20px;
+    font-size:16px;
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
+
 <h2>오늘 상태 요약</h2>
 
-<div class="gauge" id="gauge">0</div>
+<div id="gauge" class="gauge">0</div>
 
-<div class="status" id="statusText">대기중</div>
+<div id="status" class="status">대기중</div>
 
 <button class="button" onclick="runAnalysis()">분석 실행</button>
 
 <div class="tabs">
-<div class="tab active" onclick="changeTab('chart')">차트</div>
-<div class="tab" onclick="changeTab('news')">뉴스</div>
-<div class="tab" onclick="changeTab('risk')">리스크</div>
+    <div class="tab active" onclick="showTab('chart')">차트</div>
+    <div class="tab" onclick="showTab('news')">뉴스</div>
+    <div class="tab" onclick="showTab('risk')">리스크</div>
 </div>
 
-<div id="contentArea">
-<p>여기에 분석 내용이 표시됩니다.</p>
+<div id="content" class="content">
+여기에 분석 내용이 표시됩니다.
 </div>
 
 </div>
 
 <script>
+
 function runAnalysis(){
-let score=Math.floor(Math.random()*100);
-document.getElementById("gauge").innerText=score;
-updateGauge(score);
-updateStatus(score);
+
+    let score = Math.floor(Math.random() * 101);
+
+    document.getElementById("gauge").innerText = score;
+
+    let statusText = "";
+    let color = "";
+
+    if(score >= 70){
+        statusText = "안정";
+        color = "#22c55e";
+    }else if(score >= 40){
+        statusText = "주의";
+        color = "#facc15";
+    }else{
+        statusText = "경고";
+        color = "#ef4444";
+    }
+
+    document.getElementById("status").innerText = statusText;
+
+    document.getElementById("gauge").style.background =
+        "conic-gradient(" + color + " " + score + "%, #333 " + score + "%)";
 }
 
-function updateGauge(score){
-let color;
-if(score>=70){
-color="#4caf50";
-}
-else if(score>=40){
-color="#ff9800";
-}
-else{
-color="#f44336";
-}
-document.getElementById("gauge").style.background=
-`conic-gradient(${color} 0% ${score}%, #222 ${score}% 100%)`;
+function showTab(type){
+
+    let tabs = document.querySelectorAll(".tab");
+    tabs.forEach(t => t.classList.remove("active"));
+
+    event.target.classList.add("active");
+
+    if(type === "chart"){
+        document.getElementById("content").innerText = "차트 분석 설명 영역";
+    }
+    if(type === "news"){
+        document.getElementById("content").innerText = "관련 뉴스 분석 설명 영역";
+    }
+    if(type === "risk"){
+        document.getElementById("content").innerText = "리스크 분석 설명 영역";
+    }
 }
 
-function updateStatus(score){
-let text;
-if(score>=70){
-text="안정";
-}
-else if(score>=40){
-text="주의";
-}
-else{
-text="경고";
-}
-document.getElementById("statusText").innerText=text;
-}
-
-function changeTab(type){
-let content=document.getElementById("contentArea");
-if(type==="chart"){
-content.innerHTML="<p>차트 분석 결과 표시 영역</p>";
-}
-if(type==="news"){
-content.innerHTML="<p>관련 뉴스 요약 표시 영역</p>";
-}
-if(type==="risk"){
-content.innerHTML="<p>리스크 분석 표시 영역</p>";
-}
-}
 </script>
 
 </body>
