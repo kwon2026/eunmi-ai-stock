@@ -1,235 +1,295 @@
-/* ===============================
-   기본 헬퍼
-================================= */
+// =========================================
+// 상태 관리 (localStorage 단일 소스)
+// =========================================
+const LS_KEYS = {
+  MEMBER: "stock_member",          // "1"=회원, "0" 또는 null=게스트
+  THEME: "stock_theme",            // "A"~"F"
+  AD_HIDE_UNTIL: "stock_ad_hide_until" // 숫자(ms)
+};
+
+const state = {
+  isMember: false,
+  theme: "F",
+  adHideUntil: 0,
+  activeTab: "home",
+  score: 76
+};
+
 const $ = (id) => document.getElementById(id);
 
-function showModal(id){
-  const el = $(id);
-  if(el) el.style.display = "flex";
-}
-function closeModal(id){
-  const el = $(id);
-  if(el) el.style.display = "none";
-}
+// -----------------------------------------
+// Storage
+// -----------------------------------------
+function loadState() {
+  const member = localStorage.getItem(LS_KEYS.MEMBER);
+  state.isMember = member === "1";
 
-document.addEventListener("click",(e)=>{
-  const closeTarget = e.target.getAttribute?.("data-close");
-  if(closeTarget) closeModal(closeTarget);
-});
+  const theme = localStorage.getItem(LS_KEYS.THEME);
+  state.theme = theme || "F";
 
-/* ===============================
-   상태 관리 (localStorage)
-================================= */
-const LS = {
-  USER:"stock_user",           // guest | member
-  THEME:"stock_theme",
-  AD_HIDE_UNTIL:"stock_ad_hide_until"
-};
-
-function getUser(){
-  return localStorage.getItem(LS.USER) || "guest";
-}
-function setUser(v){
-  localStorage.setItem(LS.USER,v);
+  const ad = localStorage.getItem(LS_KEYS.AD_HIDE_UNTIL);
+  state.adHideUntil = ad ? Number(ad) : 0;
 }
 
-function getTheme(){
-  return localStorage.getItem(LS.THEME) || "A";
-}
-function setTheme(v){
-  localStorage.setItem(LS.THEME,v);
+function saveMember(isMember) {
+  state.isMember = !!isMember;
+  localStorage.setItem(LS_KEYS.MEMBER, state.isMember ? "1" : "0");
 }
 
-function getAdHideUntil(){
-  return Number(localStorage.getItem(LS.AD_HIDE_UNTIL) || 0);
-}
-function setAdHideUntil(ts){
-  localStorage.setItem(LS.AD_HIDE_UNTIL, ts);
+function saveTheme(themeKey) {
+  state.theme = themeKey;
+  localStorage.setItem(LS_KEYS.THEME, themeKey);
 }
 
-/* ===============================
-   테마 시스템
-================================= */
-const THEMES = {
-  A:{bg:"#0b1320",accent:"#4c8bf5",good:"#1fcf78"},
-  B:{bg:"#0b1320",accent:"#6bd1ff",good:"#36d399"},
-  C:{bg:"#0b1320",accent:"#9ad0ff",good:"#1fcf78"},
-  D:{bg:"#0b1320",accent:"#8bd0ff",good:"#1fcf78"},
-  E:{bg:"#07101b",accent:"#c9a55a",good:"#1fcf78"},
-  F:{bg:"#0b1320",accent:"#d8a2a2",good:"#1fcf78"}
-};
-
-function applyTheme(key){
-  const t = THEMES[key] || THEMES.A;
-  const r = document.documentElement.style;
-  r.setProperty("--bg", t.bg);
-  r.setProperty("--accent", t.accent);
-  r.setProperty("--good", t.good);
+function saveAdHideUntil(ms) {
+  state.adHideUntil = ms;
+  localStorage.setItem(LS_KEYS.AD_HIDE_UNTIL, String(ms));
 }
 
-/* ===============================
-   게이지 업데이트
-================================= */
-function updateGauge(score){
-  const deg = score * 3.6;
-  $("gauge").style.setProperty("--deg", deg+"deg");
-  $("scoreText").textContent = score;
-
-  let status="안정";
-  if(score<40) status="위험";
-  else if(score<70) status="주의";
-  else status="안정";
-
-  $("statusText").textContent = status;
+// -----------------------------------------
+// UI helpers
+// -----------------------------------------
+function setVisible(el, visible) {
+  if (!el) return;
+  el.classList.toggle("hidden", !visible);
 }
 
-/* ===============================
-   탭 전환 (차트/뉴스/리스크)
-================================= */
-function activateTab(tab){
-  const tabs=["Chart","News","Risk"];
-  tabs.forEach(t=>{
-    $("panel"+t).style.display="none";
-    $("tab"+t).style.opacity=".7";
+function showModal(title, bodyText, actions = []) {
+  $("modalTitle").textContent = title;
+  $("modalBody").textContent = bodyText;
+
+  const wrap = $("modalActions");
+  wrap.innerHTML = "";
+
+  actions.forEach(a => {
+    const btn = document.createElement("button");
+    btn.className = a.kind === "primary" ? "btn-primary"
+                 : a.kind === "danger" ? "btn-danger"
+                 : "btn-ghost";
+    btn.textContent = a.label;
+    btn.addEventListener("click", () => {
+      if (a.onClick) a.onClick();
+      closeModal();
+    });
+    wrap.appendChild(btn);
   });
-  $("panel"+tab).style.display="block";
-  $("tab"+tab).style.opacity="1";
+
+  setVisible($("modal"), true);
 }
 
-/* ===============================
-   하단 네비 전환
-================================= */
-document.querySelectorAll(".navItem").forEach(el=>{
-  el.addEventListener("click",()=>{
-    const page=el.dataset.page;
+function closeModal() {
+  setVisible($("modal"), false);
+}
 
-    document.querySelectorAll(".navItem")
-      .forEach(n=>n.classList.remove("active"));
-    el.classList.add("active");
+function isAdHiddenNow() {
+  if (!state.isMember) return false; // 게스트는 항상 노출(정책)
+  return Date.now() < state.adHideUntil;
+}
 
-    document.querySelectorAll(".page")
-      .forEach(p=>p.classList.remove("active"));
+// -----------------------------------------
+// 렌더링: "한 번에" 전부 갱신
+// -----------------------------------------
+function renderHeader() {
+  $("userBadge").textContent = state.isMember ? "회원" : "게스트";
+}
 
-    $("page"+page).classList.add("active");
+function renderTabs() {
+  const tabIds = ["home","portfolio","search","settings"];
+  tabIds.forEach(t => {
+    const btn = document.querySelector(`.tab[data-tab="${t}"]`);
+    if (btn) btn.classList.toggle("active", state.activeTab === t);
   });
-});
 
-/* ===============================
-   광고 로직
-================================= */
-function updateAdUI(){
-  const user=getUser();
-  const now=Date.now();
-  const hideUntil=getAdHideUntil();
+  setVisible($("pageHome"), state.activeTab === "home");
+  setVisible($("pagePortfolio"), state.activeTab === "portfolio");
+  setVisible($("pageSearch"), state.activeTab === "search");
+  setVisible($("pageSettings"), state.activeTab === "settings");
+}
 
-  const banner=$("bannerCard");
-  const badge=$("adStateBadge");
-  const remain=$("adRemainText");
-  const detail=$("adDetailState");
+function renderMemberBlocks() {
+  // guest-only / member-only 전체 처리
+  document.querySelectorAll(".guest-only").forEach(el => {
+    el.style.display = state.isMember ? "none" : "block";
+  });
+  document.querySelectorAll(".member-only").forEach(el => {
+    el.style.display = state.isMember ? "block" : "none";
+    // member-only는 기본 hidden일 수 있어 display로 풀어줬으니 hidden 제거
+    el.classList.toggle("hidden", !state.isMember);
+  });
+}
 
-  if(user==="guest"){
-    banner.style.display="block";
-    badge.textContent="ON";
-    remain.textContent="게스트는 항상 노출";
-    detail.textContent="상태: 게스트 (항상 ON)";
+function renderTheme() {
+  const sel = $("themeSelect");
+  if (sel) sel.value = state.theme;
+  // 테마 색 적용까지 하고 싶으면 여기서 CSS 변수 바꾸면 됨.
+}
+
+function renderScore() {
+  $("scoreNum").textContent = String(state.score);
+
+  let label = "안정";
+  let desc = "현재 보유 종목은 관리 가능한 흐름입니다. 급한 행동은 필요 없습니다.";
+  if (state.score < 40) { label = "위험"; desc = "변동성이 큽니다. 리스크 점검이 필요합니다."; }
+  else if (state.score < 70) { label = "주의"; desc = "주의 구간입니다. 무리한 진입은 피하세요."; }
+
+  $("scoreLabel").textContent = label;
+  $("scoreDesc").textContent = desc;
+
+  // 게이지(원형) 퍼센트 반영: conic-gradient 비율 갱신
+  const gauge = document.querySelector(".gauge");
+  if (gauge) {
+    const p = Math.max(0, Math.min(100, state.score));
+    gauge.style.background = `conic-gradient(#19c37d 0 ${p}%, rgba(255,255,255,.09) 0)`;
+  }
+}
+
+function renderAdState() {
+  const t = $("adStateText");
+  if (!t) return;
+
+  if (!state.isMember) {
+    t.textContent = "게스트는 항상 노출";
     return;
   }
-
-  if(now < hideUntil){
-    banner.style.display="none";
-    const hours=Math.ceil((hideUntil-now)/3600000);
-    remain.textContent="광고 숨김 "+hours+"시간 남음";
-    detail.textContent="상태: 24시간 숨김 활성";
-  }else{
-    banner.style.display="block";
-    badge.textContent="ON";
-    remain.textContent="광고 표시중";
-    detail.textContent="상태: 광고 ON";
+  if (isAdHiddenNow()) {
+    const leftMs = state.adHideUntil - Date.now();
+    const leftMin = Math.ceil(leftMs / 60000);
+    t.textContent = `배너 숨김 중 (약 ${leftMin}분 남음)`;
+  } else {
+    t.textContent = "배너 광고 노출(회원 기본 ON)";
   }
 }
 
-/* ===============================
-   이벤트 연결
-================================= */
-document.addEventListener("DOMContentLoaded",()=>{
+function renderAll() {
+  renderHeader();
+  renderTabs();
+  renderMemberBlocks();
+  renderTheme();
+  renderScore();
+  renderAdState();
+}
 
-  // 초기값
-  applyTheme(getTheme());
-  updateGauge(76);
-  updateAdUI();
+// -----------------------------------------
+// 이벤트
+// -----------------------------------------
+function setTab(tab) {
+  state.activeTab = tab;
+  renderAll();
+}
 
-  $("themeSelect").value=getTheme();
-
-  // 테마 변경
-  $("themeSelect").addEventListener("change",(e)=>{
-    setTheme(e.target.value);
-    applyTheme(e.target.value);
-  });
-
-  // 분석 실행
-  $("btnAnalyze").addEventListener("click",()=>{
-    const random=40+Math.floor(Math.random()*60);
-    updateGauge(random);
-  });
-
-  // 탭 버튼
-  $("tabChart").addEventListener("click",()=>activateTab("Chart"));
-  $("tabNews").addEventListener("click",()=>activateTab("News"));
-  $("tabRisk").addEventListener("click",()=>activateTab("Risk"));
-
-  // 광고 상세
-  $("btnAdDetail").addEventListener("click",()=>{
-    showModal("modalAdBack");
-    updateAdUI();
-  });
-
-  // 광고 보기(테스트)
-  $("btnWatchAd").addEventListener("click",()=>{
-    const now=Date.now();
-    const hideUntil=now + (24*60*60*1000);
-    setAdHideUntil(hideUntil);
-    closeModal("modalAdBack");
-    updateAdUI();
-  });
-
-  // 강제 광고 켜기
-  $("btnForceAdOn").addEventListener("click",()=>{
-    setAdHideUntil(0);
-    updateAdUI();
-  });
-
-  // 로그인
-  $("btnLogin").addEventListener("click",()=>showModal("modalLoginBack"));
-  $("btnDoLogin").addEventListener("click",()=>{
-    setUser("member");
-    closeModal("modalLoginBack");
-    updateUserUI();
-    updateAdUI();
-  });
-
-  // 로그아웃
-  $("btnLogout").addEventListener("click",()=>{
-    setUser("guest");
-    updateUserUI();
-    updateAdUI();
-  });
-
-  updateUserUI();
-});
-
-/* ===============================
-   사용자 UI 업데이트
-================================= */
-function updateUserUI(){
-  const user=getUser();
-  $("userStateText").textContent = user==="member"?"회원":"게스트";
-  $("settingUserText").textContent = user==="member"?"회원":"게스트";
-
-  if(user==="member"){
-    $("btnLogin").style.display="none";
-    $("btnLogout").style.display="flex";
-  }else{
-    $("btnLogin").style.display="inline-block";
-    $("btnLogout").style.display="none";
-  }
+function doLoginTest() {
+  showModal(
+    "로그인(테스트)",
+    "지금은 테스트용이야.\n“로그인” 누르면 회원으로 전환되고 저장/알림 기능이 열림.\n※ 실제 계정/DB는 다음 단계에서 붙임",
+    [
+      { label: "취소", kind: "ghost" },
+      { label: "로그인", kind: "primary", onClick: () => {
+          saveMember(true);
+          renderAll();
+        }
       }
+    ]
+  );
+}
+
+function doLogout() {
+  showModal(
+    "로그아웃",
+    "게스트로 전환할까?",
+    [
+      { label: "취소", kind: "ghost" },
+      { label: "로그아웃", kind: "danger", onClick: () => {
+          saveMember(false);
+          renderAll();
+        }
+      }
+    ]
+  );
+}
+
+function showAdPolicy() {
+  showModal(
+    "광고 정책",
+    state.isMember
+      ? "회원: 배너 광고 기본 ON\n“1분 광고 보기” 완료 시 24시간 배너 숨김"
+      : "게스트: 배너 광고 24시간 노출",
+    [
+      { label: "닫기", kind: "primary" },
+      ...(state.isMember ? [{
+        label: "1분 광고 보기(테스트)",
+        kind: "primary",
+        onClick: () => {
+          // 테스트: 24시간 숨김 처리
+          saveAdHideUntil(Date.now() + 24*60*60*1000);
+          renderAll();
+        }
+      }] : [])
+    ]
+  );
+}
+
+function resetAd() {
+  saveAdHideUntil(0);
+  renderAll();
+}
+
+function runAnalysis() {
+  // 지금은 데모: 점수 랜덤
+  const next = Math.floor(30 + Math.random() * 70);
+  state.score = next;
+  renderAll();
+}
+
+function bindEvents() {
+  // 탭
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => setTab(btn.dataset.tab));
+  });
+
+  // 상단 버튼
+  $("btnRefresh").addEventListener("click", () => location.reload());
+  $("btnSearchTop").addEventListener("click", () => setTab("search"));
+
+  // 테마
+  $("themeSelect").addEventListener("change", (e) => {
+    saveTheme(e.target.value);
+    renderAll();
+  });
+
+  // 홈 액션
+  $("btnRun").addEventListener("click", runAnalysis);
+  $("btnSavedList").addEventListener("click", () => {
+    if (!state.isMember) return doLoginTest();
+    showModal("저장 리스트", "여기에 회원 저장 리스트 기능을 붙일 예정.", [{label:"닫기", kind:"primary"}]);
+  });
+  $("btnAlerts").addEventListener("click", () => {
+    if (!state.isMember) return doLoginTest();
+    showModal("알림 설정", "여기에 회원 알림 설정 기능을 붙일 예정.", [{label:"닫기", kind:"primary"}]);
+  });
+
+  // 광고 정책
+  $("btnAdPolicy").addEventListener("click", showAdPolicy);
+
+  // 로그인 버튼(각 페이지)
+  $("btnLoginFromPortfolio").addEventListener("click", doLoginTest);
+  $("btnLoginFromSearch").addEventListener("click", doLoginTest);
+
+  // 설정
+  $("btnAdReset").addEventListener("click", resetAd);
+  $("btnLogout").addEventListener("click", doLogout);
+
+  // 모달 닫기
+  $("modalClose").addEventListener("click", closeModal);
+  $("modal").addEventListener("click", (e) => {
+    if (e.target === $("modal")) closeModal();
+  });
+}
+
+// -----------------------------------------
+// 부팅
+// -----------------------------------------
+(function boot() {
+  loadState();
+  bindEvents();
+  renderAll();
+})();
